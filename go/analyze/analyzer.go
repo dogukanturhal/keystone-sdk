@@ -16,7 +16,7 @@
 // migration analyzer in Phase A4, and 30 more in Phase A2 (locks,
 // compat, DML safety, transaction safety, type conventions, naming).
 // The current DefaultRegistry returns 51 analyzers total — see
-// docs/roadmap-tier1-gaps.md.
+// the internal roadmap.
 package analyze
 
 import (
