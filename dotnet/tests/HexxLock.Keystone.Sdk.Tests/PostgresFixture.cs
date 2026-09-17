@@ -20,8 +20,9 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public PostgresFixture()
     {
-        _container = new PostgreSqlBuilder()
-            .WithImage("postgres:16-alpine")
+        // Testcontainers 4.15 obsoleted the parameterless builder: the image
+        // is a constructor argument so the default can no longer drift.
+        _container = new PostgreSqlBuilder("postgres:16-alpine")
             .WithDatabase("keystone_sdk_test")
             .WithUsername("test")
             .WithPassword("test")
