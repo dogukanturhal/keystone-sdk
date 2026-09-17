@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HexxLock.Keystone.Sdk/HexxLock.Keystone.Sdk.csproj" />
+    <Project Path="src/HexxLock.Keystone.Sdk.EntityFrameworkCore/HexxLock.Keystone.Sdk.EntityFrameworkCore.csproj" />
+    <Project Path="src/HexxLock.Keystone.Sdk.EntityFrameworkCore.Tool/HexxLock.Keystone.Sdk.EntityFrameworkCore.Tool.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HexxLock.Keystone.Sdk.Tests/HexxLock.Keystone.Sdk.Tests.csproj" />
+    <Project Path="tests/HexxLock.Keystone.Sdk.EntityFrameworkCore.Tests/HexxLock.Keystone.Sdk.EntityFrameworkCore.Tests.csproj" />
+  </Folder>
+</Solution>

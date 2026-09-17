@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>HexxLock.Keystone.Sdk.EntityFrameworkCore</RootNamespace>
+    <AssemblyName>HexxLock.Keystone.Sdk.EntityFrameworkCore</AssemblyName>
+    <PackageId>HexxLock.Keystone.Sdk.EntityFrameworkCore</PackageId>
+    <Description>Apache-2.0 EF Core provider for Keystone — export an EF Core model's full CREATE DDL (GenerateCreateScript) as a schema-as-code source that `keystonectl migrate diff --desired sql://…` and `keystonectl scaffold` consume. The "schema from code" bridge for .NET, mirroring Atlas's ORM providers.</Description>
+    <PackageTags>keystone;entityframeworkcore;efcore;migrations;schema-as-code;postgres</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- GenerateCreateScript lives on the relational database facade; the
+         concrete provider (Npgsql) is supplied by the consuming app, not
+         by this package, so it stays provider-agnostic. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HexxLock.Keystone.Sdk.EntityFrameworkCore.Tests" />
+  </ItemGroup>
+
+</Project>

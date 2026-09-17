@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- A dotnet tool ships a single TFM and rolls forward onto newer
+         runtimes, so one package serves net8 through net10+ consumers.
+         The tool never loads the consumer's assemblies (it drives
+         `dotnet ef` out of process), so its TFM is independent of the
+         TFM the consuming project targets. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <RootNamespace>HexxLock.Keystone.Sdk.EntityFrameworkCore.Tool</RootNamespace>
+    <AssemblyName>keystone-ef</AssemblyName>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>keystone-ef</ToolCommandName>
+    <PackageId>keystone-ef</PackageId>
+    <Description>Apache-2.0 Keystone schema provider for Entity Framework Core. Prints an EF Core model's desired schema as PostgreSQL DDL on stdout, for consumption by `keystonectl migrate diff --desired 'exec://dotnet keystone-ef'`. The .NET half of Keystone's "migrations from code" workflow.</Description>
+    <PackageTags>keystone;entityframeworkcore;efcore;migrations;schema-as-code;postgres;dotnet-tool</PackageTags>
+  </PropertyGroup>
+
+</Project>

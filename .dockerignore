@@ -1,0 +1,7 @@
+# Keep Docker build contexts lean (this repo is vendored into the downstream-service image
+# build via `--build-context keystone-sdk=...`). Build artifacts + VCS metadata are
+# never needed for a from-source cargo build.
+target
+**/target
+.git
+**/*.rs.bk

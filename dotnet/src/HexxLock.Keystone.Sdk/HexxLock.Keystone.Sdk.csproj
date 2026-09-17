@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>HexxLock.Keystone.Sdk</RootNamespace>
+    <AssemblyName>HexxLock.Keystone.Sdk</AssemblyName>
+    <PackageId>HexxLock.Keystone.Sdk</PackageId>
+    <Description>Apache-2.0 .NET runtime SDK for Keystone — apply versioned SQL migrations against Postgres with content-hash anti-replay, schema_migrations tracking, and Postgres-CONCURRENTLY-aware no-tx fallback. Wire-compatible with the Go SDK and the Keystone operator.</Description>
+    <PackageTags>keystone;postgres;migrations;sql;testing;testcontainers</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HexxLock.Keystone.Sdk.Tests" />
+  </ItemGroup>
+
+</Project>

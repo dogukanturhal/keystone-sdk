@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+[package]
+name = "keystonectl"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "Apache-2.0"
+description = "CLI peer to keystonectl built on the Rust keystone-sdk (apply/inspect/lint/diff/sum)."
+repository = "https://github.com/dogukanturhal/keystone-sdk"
+
+[[bin]]
+name = "keystonectl"
+path = "src/main.rs"
+
+[dependencies]
+keystone-sdk = { path = "../keystone-sdk" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio-postgres = "0.7"
+serde_json = "1"
