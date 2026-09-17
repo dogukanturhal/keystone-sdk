@@ -92,7 +92,7 @@ type Runner struct {
 	//
 	// The connection's role MUST be a member of ownerRole (PostgreSQL
 	// SET ROLE requirement); the platform pattern bakes this in via
-	// `keystone_admin.inRoles: [hexxlock_<svc>_owner, …]` on each
+	// `keystone_admin.inRoles: [example_<svc>_owner, …]` on each
 	// managed Cluster.
 	ownerRole string
 }

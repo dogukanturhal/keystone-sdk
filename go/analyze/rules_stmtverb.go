@@ -15,7 +15,7 @@ import (
 // migration 234):
 //
 //   GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-//     ON TABLES TO falcon_id_app;
+//     ON TABLES TO example_service_app;
 //
 // trips:
 //   no-truncate                — regex `\bTRUNCATE\b`

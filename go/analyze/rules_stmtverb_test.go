@@ -49,7 +49,7 @@ ALTER TABLE t ADD COLUMN c int;`
 // "GRANT", not "TRUNCATE".
 func TestStatementVerb_GrantWithKeywordPrivileges(t *testing.T) {
 	body := `GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-  ON TABLES TO falcon_id_app;`
+  ON TABLES TO example_service_app;`
 
 	for _, kw := range []string{"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"} {
 		idx := strings.Index(body, kw)
@@ -123,10 +123,10 @@ SELECT count(*) FROM users;`
 // does NOT fire on the live example-service migration 234 pattern.
 func TestNoTruncate_NoFalsePositiveOnGrant(t *testing.T) {
 	m := &Migration{Files: []FileBody{{
-		Name: "234_grant_keystone_admin_default_privileges_to_falcon_id_app.up.sql",
+		Name: "234_grant_keystone_admin_default_privileges_to_example_service_app.up.sql",
 		Body: `ALTER DEFAULT PRIVILEGES FOR ROLE keystone_admin IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-  ON TABLES TO falcon_id_app;`,
+  ON TABLES TO example_service_app;`,
 	}}}
 	rule := &NoTruncate{}
 	out, err := rule.Check(context.Background(), m)
@@ -162,9 +162,9 @@ func TestNoTruncate_FiresOnRealTruncate(t *testing.T) {
 // regression test for the UPDATE-as-privilege false positive.
 func TestNoUpdateWithoutWhere_NoFalsePositiveOnGrant(t *testing.T) {
 	m := &Migration{Files: []FileBody{{
-		Name: "234_grant_keystone_admin_default_privileges_to_falcon_id_app.up.sql",
+		Name: "234_grant_keystone_admin_default_privileges_to_example_service_app.up.sql",
 		Body: `GRANT SELECT, INSERT, UPDATE, DELETE
-  ON TABLE iam_oauth_logout_outbox TO falcon_id_app;`,
+  ON TABLE iam_oauth_logout_outbox TO example_service_app;`,
 	}}}
 	rule := &NoUpdateWithoutWhere{}
 	out, err := rule.Check(context.Background(), m)

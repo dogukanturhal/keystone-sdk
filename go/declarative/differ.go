@@ -2908,7 +2908,7 @@ func isASCIILetter(b byte) bool {
 // in per-element form, and the next reconcile re-emits the same
 // pair — a silent loop that drives runaway MigrationBundle
 // re-emission and AuditEntry growth (observed 2026-05-06 against
-// idx_iam_login_risk_events_high_risk on hexxlock_realm_platform,
+// idx_iam_login_risk_events_high_risk on example_realm_platform,
 // blowing keystone-operator into OOM-loop and pushing etcd into
 // EtcdTooManyRequestsAlarm via 230 MB single-batch ranges).
 //

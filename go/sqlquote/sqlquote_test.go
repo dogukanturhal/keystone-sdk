@@ -20,7 +20,7 @@ func TestValidateIdentifier(t *testing.T) {
 		// Happy path
 		{"simple lowercase", "crm", false},
 		{"underscore prefix", "_temp", false},
-		{"underscore middle", "hexxlock_erp", false},
+		{"underscore middle", "example_suite", false},
 		{"digits after letter", "schema_2", false},
 		{"max length 63", strings.Repeat("a", 63), false},
 
@@ -106,7 +106,7 @@ func TestQuoteIdentifier(t *testing.T) {
 		in, want string
 	}{
 		{"crm", `"crm"`},
-		{"hexxlock_erp", `"hexxlock_erp"`},
+		{"example_suite", `"example_suite"`},
 		// Even though ValidateIdentifier rejects these, QuoteIdentifier
 		// must still escape them safely as a defence-in-depth layer.
 		{`"`, `""""`},
