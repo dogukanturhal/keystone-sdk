@@ -392,7 +392,7 @@ func (i *Inspector) Inspect(ctx context.Context, schema string) (*Snapshot, erro
 	//
 	//  2. Robustness. information_schema.views.view_definition is NULL
 	//     when the caller lacks USAGE on the view's schema or EXECUTE on
-	//     a function it references (Falcon-ID's keystone_admin hits this
+	//     a function it references (Example Service's keystone_admin hits this
 	//     on the legacy audit views). pg_get_viewdef reconstructs from
 	//     the catalog regardless of privilege on referenced objects.
 	//
