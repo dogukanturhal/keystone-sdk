@@ -3,7 +3,7 @@ module github.com/dogukanturhal/keystone-sdk/go
 go 1.25.5
 
 require (
-	github.com/dogukanturhal/keystone/api v0.2.0
+	github.com/dogukanturhal/keystone/api v0.2.1
 	github.com/jackc/pgx/v5 v5.9.1
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.42.0
