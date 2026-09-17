@@ -52,7 +52,7 @@ type EnrollSchemaOpts struct {
 	TenantID string
 
 	// Scope is the product scope label
-	// (keystone.hexxlock.io/scope) — e.g. "example-service", "hexx-erp".
+	// (keystone.hexxlock.io/scope) — e.g. "billing", "crm".
 	// Required; SchemaPolicies typically gate by this label.
 	Scope string
 

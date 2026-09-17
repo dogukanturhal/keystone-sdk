@@ -12,7 +12,7 @@ The per-version content hash is the shared anti-replay token.
 
 The operator itself (`internal/`, `cmd/manager/`, CRDs) is
 AGPL-3.0-or-later; this package is Apache-2.0 per
-[ADR 0001](../../docs/adrs/0001-agplv3-license.md). See
+ADR 0001 in the keystone repository. See
 [`LICENSE-Apache-SDK`](../../LICENSE-Apache-SDK) at the repository root.
 
 ## When to use the SDK

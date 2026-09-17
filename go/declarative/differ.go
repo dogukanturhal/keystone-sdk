@@ -500,9 +500,9 @@ func diffViews(plan *Plan, schema string, observed *drift.Snapshot, desired *key
 		// Empty-query guard: a view with no SELECT body would render as
 		// `CREATE OR REPLACE VIEW "x" AS ;` which PG rejects with
 		// `syntax error at or near ";"`. Phase F's curate.py stripped
-		// these from authored SDs (memory: project_keystone_phase_F_complete);
+		// these from authored SDs;
 		// keystonectl's --strip-dangling-refs absorbed the rule (Phase G,
-		// memory: project_keystone_phase_G_2026_05_04). But neither pass
+		// a later phase). But neither pass
 		// catches a hand-authored SD that landed an empty query AFTER
 		// inspection, AND the differ should fail closed regardless of
 		// whether the curation step ran. Skip-with-warning instead of

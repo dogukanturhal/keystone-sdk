@@ -8,7 +8,7 @@ Kubernetes cluster.
 This is the legitimate integration point for proprietary Go code.
 The operator itself (`services/keystone/{cmd,internal,api}`) is
 AGPL-3.0-or-later; this package is Apache-2.0 per
-[ADR 0001](../../../docs/adrs/0001-agplv3-license.md). See the
+ADR 0001 in the keystone repository. See the
 `LICENSE-Apache-SDK` file at the repository root for the full text.
 
 ## When to use the SDK
