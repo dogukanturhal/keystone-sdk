@@ -14,7 +14,7 @@
     <!-- GenerateCreateScript lives on the relational database facade; the
          concrete provider (Npgsql) is supplied by the consuming app, not
          by this package, so it stays provider-agnostic. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.22" />
   </ItemGroup>
 
   <ItemGroup>
