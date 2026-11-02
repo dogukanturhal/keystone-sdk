@@ -16,7 +16,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.1" />
     <PackageReference Include="FluentAssertions" Version="7.0.0" />
-    <PackageReference Include="JunitXml.TestLogger" Version="6.1.0" />
+    <PackageReference Include="JunitXml.TestLogger" Version="8.1.0" />
     <!-- Bumped from 4.3.0: that version pulls transitive SSH.NET 2024.2.0, which is
          flagged by NU1903 for CVE-2026-85756 (GHSA-mggc-4xg6-vcxf) and CVE-2026-48798
          (GHSA-q939-rpr3-3284), both high severity. Testcontainers.PostgreSql 4.15.0
