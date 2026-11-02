@@ -325,7 +325,7 @@ func boolPtr(b bool) *bool { return &b }
 // drift, so on the first reconcile after this field ships every baseline in
 // the fleet is an old-model document that never recorded FORCE. Decoding the
 // missing key as false would read all 86 already-forced tables on a schema
-// like downstream-service's as "FORCE was just added" — and keep reporting them on
+// like downstream's as "FORCE was just added" — and keep reporting them on
 // every reconcile, because nothing rewrites the baseline. The comparison has
 // to be skipped instead.
 func TestDiffSkipsForceComparisonAgainstLegacyBaseline(t *testing.T) {

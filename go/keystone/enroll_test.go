@@ -28,15 +28,15 @@ func newScheme(t *testing.T) *runtime.Scheme {
 
 func validOpts() EnrollSchemaOpts {
 	return EnrollSchemaOpts{
-		Namespace:  "example-service",
-		NamePrefix: "example-service-tenant",
+		Namespace:  "falcon-id",
+		NamePrefix: "falcon-id-tenant",
 		TenantID:   "abc-123",
-		Scope:      "example-service",
+		Scope:      "falcon-id",
 		Tier:       "tenant",
 		LogicalDatabase: keystonev1alpha1.LogicalDatabaseSpec{
 			Name:        "tenant_abc",
 			ClusterRef:  "prod-eu-west-1-hub",
-			ProviderRef: "cnpg-example-service",
+			ProviderRef: "cnpg-falcon-id",
 			OwnerRole:   "tenant_abc_owner",
 		},
 		Schemas: []keystonev1alpha1.DatabaseSchemaSpec{
@@ -54,12 +54,12 @@ func TestEnrollSchema_HappyPath(t *testing.T) {
 		t.Fatalf("enroll: %v", err)
 	}
 
-	want := types.NamespacedName{Namespace: "example-service", Name: "example-service-tenant-abc-123"}
+	want := types.NamespacedName{Namespace: "falcon-id", Name: "falcon-id-tenant-abc-123"}
 	if res.LogicalDatabaseRef != want {
 		t.Errorf("LogicalDatabaseRef = %v, want %v", res.LogicalDatabaseRef, want)
 	}
-	if len(res.SchemaRefs) != 1 || res.SchemaRefs[0].Name != "example-service-tenant-abc-123-public" {
-		t.Errorf("SchemaRefs = %v, want [example-service-tenant-abc-123-public]", res.SchemaRefs)
+	if len(res.SchemaRefs) != 1 || res.SchemaRefs[0].Name != "falcon-id-tenant-abc-123-public" {
+		t.Errorf("SchemaRefs = %v, want [falcon-id-tenant-abc-123-public]", res.SchemaRefs)
 	}
 
 	// Verify CRs landed.
@@ -70,7 +70,7 @@ func TestEnrollSchema_HappyPath(t *testing.T) {
 	if ldb.Spec.Name != "tenant_abc" {
 		t.Errorf("ldb.spec.name = %q, want tenant_abc", ldb.Spec.Name)
 	}
-	if ldb.Labels[keystonev1alpha1.LabelScope] != "example-service" {
+	if ldb.Labels[keystonev1alpha1.LabelScope] != "falcon-id" {
 		t.Errorf("ldb missing scope label: %v", ldb.Labels)
 	}
 	if ldb.Labels[keystonev1alpha1.LabelTenantID] != "abc-123" {
@@ -87,7 +87,7 @@ func TestEnrollSchema_HappyPath(t *testing.T) {
 	if err := k8s.Get(context.Background(), res.SchemaRefs[0], &schema); err != nil {
 		t.Fatalf("get schema: %v", err)
 	}
-	if schema.Spec.LogicalDatabaseRef != "example-service-tenant-abc-123" {
+	if schema.Spec.LogicalDatabaseRef != "falcon-id-tenant-abc-123" {
 		t.Errorf("schema.LogicalDatabaseRef = %q, want pointed at SDK-managed ldb", schema.Spec.LogicalDatabaseRef)
 	}
 }
@@ -134,7 +134,7 @@ func TestEnrollSchema_LabelOverrideWins(t *testing.T) {
 	}
 	var ldb keystonev1alpha1.LogicalDatabase
 	if err := k8s.Get(context.Background(),
-		types.NamespacedName{Namespace: "example-service", Name: "example-service-tenant-abc-123"},
+		types.NamespacedName{Namespace: "falcon-id", Name: "falcon-id-tenant-abc-123"},
 		&ldb); err != nil {
 		t.Fatalf("get ldb: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestEnrollSchema_AnnotationsPropagate(t *testing.T) {
 
 	opts := validOpts()
 	opts.Annotations = map[string]string{
-		keystonev1alpha1.AnnotationAuthor:   "system:example-service-provisioner",
+		keystonev1alpha1.AnnotationAuthor:   "system:falcon-id-provisioner",
 		keystonev1alpha1.AnnotationRiskTier: "low",
 	}
 	if _, err := EnrollSchema(context.Background(), k8s, opts); err != nil {
@@ -160,9 +160,9 @@ func TestEnrollSchema_AnnotationsPropagate(t *testing.T) {
 	}
 	var ldb keystonev1alpha1.LogicalDatabase
 	_ = k8s.Get(context.Background(),
-		types.NamespacedName{Namespace: "example-service", Name: "example-service-tenant-abc-123"},
+		types.NamespacedName{Namespace: "falcon-id", Name: "falcon-id-tenant-abc-123"},
 		&ldb)
-	if ldb.Annotations[keystonev1alpha1.AnnotationAuthor] != "system:example-service-provisioner" {
+	if ldb.Annotations[keystonev1alpha1.AnnotationAuthor] != "system:falcon-id-provisioner" {
 		t.Errorf("author annotation missing: %v", ldb.Annotations)
 	}
 	if ldb.Annotations[keystonev1alpha1.AnnotationRiskTier] != "low" {
@@ -228,8 +228,8 @@ func TestDeenrollSchema_Idempotent(t *testing.T) {
 	k8s := fake.NewClientBuilder().WithScheme(s).Build()
 	// Deenroll on empty cluster — must not error.
 	err := DeenrollSchema(context.Background(), k8s, DeenrollSchemaOpts{
-		Namespace:   "example-service",
-		NamePrefix:  "example-service-tenant",
+		Namespace:   "falcon-id",
+		NamePrefix:  "falcon-id-tenant",
 		TenantID:    "ghost",
 		SchemaNames: []string{"public"},
 	})
@@ -269,7 +269,7 @@ func TestDeenrollSchema_DropDataFlipsPolicy(t *testing.T) {
 
 func TestWaitSchemaUpToDate_HappyPath(t *testing.T) {
 	s := newScheme(t)
-	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-desired"}
+	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-desired"}
 	sd := &keystonev1alpha1.SchemaDefinition{
 		ObjectMeta: metav1.ObjectMeta{Namespace: sdRef.Namespace, Name: sdRef.Name},
 		Status: keystonev1alpha1.SchemaDefinitionStatus{
@@ -289,7 +289,7 @@ func TestWaitSchemaUpToDate_HappyPath(t *testing.T) {
 
 func TestWaitSchemaUpToDate_NotEnoughMatched(t *testing.T) {
 	s := newScheme(t)
-	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-desired"}
+	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-desired"}
 	sd := &keystonev1alpha1.SchemaDefinition{
 		ObjectMeta: metav1.ObjectMeta{Namespace: sdRef.Namespace, Name: sdRef.Name},
 		Status: keystonev1alpha1.SchemaDefinitionStatus{
@@ -313,7 +313,7 @@ func TestWaitSchemaUpToDate_NotEnoughMatched(t *testing.T) {
 
 func TestWaitSchemaUpToDate_NotReady(t *testing.T) {
 	s := newScheme(t)
-	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-desired"}
+	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-desired"}
 	sd := &keystonev1alpha1.SchemaDefinition{
 		ObjectMeta: metav1.ObjectMeta{Namespace: sdRef.Namespace, Name: sdRef.Name},
 		Status: keystonev1alpha1.SchemaDefinitionStatus{
@@ -339,7 +339,7 @@ func TestWaitSchemaUpToDate_ZeroExpected(t *testing.T) {
 	// expectedMatched=0 + Ready=True → returns immediately. Useful for
 	// the degenerate case "wait until SD is healthy regardless of count".
 	s := newScheme(t)
-	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-desired"}
+	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-desired"}
 	sd := &keystonev1alpha1.SchemaDefinition{
 		ObjectMeta: metav1.ObjectMeta{Namespace: sdRef.Namespace, Name: sdRef.Name},
 		Status: keystonev1alpha1.SchemaDefinitionStatus{
@@ -384,9 +384,9 @@ func TestWaitSchemaUpToDate_SDMissing(t *testing.T) {
 
 func TestWaitSchemaFingerprint_HappyPath(t *testing.T) {
 	s := newScheme(t)
-	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-desired"}
-	schemaA := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-aaa-public"}
-	schemaB := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-bbb-public"}
+	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-desired"}
+	schemaA := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-aaa-public"}
+	schemaB := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-bbb-public"}
 
 	sd := &keystonev1alpha1.SchemaDefinition{
 		ObjectMeta: metav1.ObjectMeta{Namespace: sdRef.Namespace, Name: sdRef.Name},
@@ -412,9 +412,9 @@ func TestWaitSchemaFingerprint_HappyPath(t *testing.T) {
 
 func TestWaitSchemaFingerprint_OneStaleSchema(t *testing.T) {
 	s := newScheme(t)
-	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-desired"}
-	schemaA := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-aaa-public"}
-	schemaB := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-bbb-public"}
+	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-desired"}
+	schemaA := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-aaa-public"}
+	schemaB := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-bbb-public"}
 
 	sd := &keystonev1alpha1.SchemaDefinition{
 		ObjectMeta: metav1.ObjectMeta{Namespace: sdRef.Namespace, Name: sdRef.Name},
@@ -448,7 +448,7 @@ func TestWaitSchemaFingerprint_OneStaleSchema(t *testing.T) {
 func TestWaitSchemaFingerprint_SDFingerprintEmpty(t *testing.T) {
 	// SD reconciler hasn't computed Fingerprint yet — helper waits.
 	s := newScheme(t)
-	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "example-service-tenant-desired"}
+	sdRef := types.NamespacedName{Namespace: "keystone-system", Name: "falcon-id-tenant-desired"}
 	sd := &keystonev1alpha1.SchemaDefinition{
 		ObjectMeta: metav1.ObjectMeta{Namespace: sdRef.Namespace, Name: sdRef.Name},
 		Status:     keystonev1alpha1.SchemaDefinitionStatus{Fingerprint: ""},

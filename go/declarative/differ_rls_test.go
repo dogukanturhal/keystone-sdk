@@ -130,7 +130,7 @@ func TestForceRLSIgnoredWhenRLSDisabled(t *testing.T) {
 
 // Both RLS statements are idempotent, so emitting them unconditionally was
 // never wrong — it was just noise, and a plan that is never empty is a plan
-// nobody reads. downstream-service's 97-table schema produced 172 no-op statements on
+// nobody reads. downstream's 97-table schema produced 172 no-op statements on
 // a database that already matched its declaration exactly.
 func TestRLSEmitsNothingWhenAlreadyConverged(t *testing.T) {
 	plan := planWith(t, seen("messages", true, boolPtr(true)),

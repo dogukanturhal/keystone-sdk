@@ -7,7 +7,7 @@ import "testing"
 // TestNormaliseArrayCasts_FalconIdLoginRiskHighRiskWhereClause covers
 // the exact strings observed 2026-05-06 on
 // idx_iam_login_risk_events_high_risk in
-// example-service-tenant-desired. Pre-fix the differ saw permanent drift
+// falcon-id-tenant-desired. Pre-fix the differ saw permanent drift
 // between SD-declared (cast distribution) and PG-stored (per-element
 // cast) forms, re-emitting the same DROP/CREATE bundle on every
 // reconcile and driving keystone-operator into OOM-loop.

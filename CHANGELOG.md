@@ -3,6 +3,17 @@
 This repo ships per-language tags. .NET tags are `dotnet-vX.Y.Z`; Go
 tags are `go/vX.Y.Z`; Rust tags are `rust-vX.Y.Z`.
 
+## Unreleased
+
+### Changed
+
+- First public sync from the development repository.
+- README rewritten to state what is usable today and what is not published.
+- Added GitHub Actions CI for Go, Rust and .NET, Dependabot, issue templates
+  and governance files.
+- Go module: `github.com/dogukanturhal/keystone/api` pinned to the published
+  v0.2.1 (Apache-2.0).
+
 ## .NET
 
 ### keystone-ef dotnet-v0.3.0 — EF Core provider tool
@@ -55,7 +66,7 @@ are now packed on the `dotnet-v*` tag.
   `schema_migrations` row format and SHA-256 content-hash algorithm.
 - Multi-targets `net8.0` and `net10.0`.
 - Targets the in-operator Go SDK
-  (`github.com/dogukanturhal/keystone/pkg/sdk/keystone`) for
+  (`github.com/dogukanturhal/keystone-sdk/go/keystone`) for
   cross-language interop until the Go SDK is lifted into this repo.
 
 ## Go
@@ -64,6 +75,18 @@ Tags are `go/vX.Y.Z`.
 
 ### Unreleased
 
+- `declarative` — honours `SchemaDefinitionSpec.RetainTables`: a table listed
+  there is never planned for `DROP TABLE`, even with `allowDestructive`, and
+  produces a warning instead. Requires the `api` module release that adds the
+  field.
+- `migration` — `Runner.Apply` serializes per schema with a Postgres advisory
+  lock, `pg_advisory_xact_lock(hashtext('keystone.apply'), hashtext(schema))`
+  on the transaction path and a session-level `pg_advisory_lock` on the
+  pinned connection for the CONCURRENTLY (no-tx) path. A declarative diff and
+  a hand-written bundle can no longer interleave and fail with 42P07.
+  `Runner.Precheck` is an optional hook that runs after the lock is held and
+  before any SQL; an error aborts the apply (wrapped in `ErrPrecheckFailed`)
+  without executing anything or writing a tracking row.
 - `drift` — `TableShape.RLSForced` records `pg_class.relforcerowsecurity`,
   and `Diff` reports its loss. ENABLE alone exempts the table's owner from
   every policy on the table, so an application connecting as the owning
@@ -80,7 +103,7 @@ Tags are `go/vX.Y.Z`.
 - `declarative` — `diffRLS` consults the observed snapshot. Both RLS
   statements are idempotent, so emitting them for every table was correct
   but produced a plan that could never be empty — 172 no-op statements on
-  downstream-service's 97-table schema, on a database that already matched its
+  downstream's 97-table schema, on a database that already matched its
   declaration exactly. A converged schema now plans to nothing. Unknown
   still emits: a table absent from the snapshot is one this plan is about
   to create, and a nil FORCE bit is a snapshot written before the field

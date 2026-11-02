@@ -3,7 +3,7 @@
 **Status: complete (2026-05-11).**
 
 The Go SDK has moved from
-`github.com/dogukanturhal/keystone/pkg/sdk/keystone` (operator repo)
+`github.com/dogukanturhal/keystone-sdk/go/keystone` (operator repo)
 to `github.com/dogukanturhal/keystone-sdk/go/keystone` (this repo)
 as part of the v0.1.0 cut.
 

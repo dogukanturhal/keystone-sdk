@@ -92,9 +92,34 @@ type Runner struct {
 	//
 	// The connection's role MUST be a member of ownerRole (PostgreSQL
 	// SET ROLE requirement); the platform pattern bakes this in via
-	// `keystone_admin.inRoles: [example_<svc>_owner, …]` on each
+	// `keystone_admin.inRoles: [hexxlock_<svc>_owner, …]` on each
 	// managed Cluster.
 	ownerRole string
+
+	// Precheck, when set, runs after the per-schema advisory lock is held
+	// and before any SQL touches the schema, so it observes a schema no
+	// other Keystone apply is mutating. A non-nil error aborts the apply:
+	// nothing executes, no tracking row is written, and Apply returns the
+	// error wrapped with ErrPrecheckFailed. Set it before calling Apply.
+	Precheck func(ctx context.Context) error
+}
+
+// advisoryLockNamespace is the first key of the two-int advisory lock taken
+// per schema. The second key is hashtext(schema).
+const advisoryLockNamespace = "keystone.apply"
+
+// ErrPrecheckFailed wraps every error returned by a Precheck so callers can
+// tell "aborted before executing" apart from a SQL failure.
+var ErrPrecheckFailed = errors.New("precheck failed")
+
+func (r *Runner) runPrecheck(ctx context.Context) error {
+	if r.Precheck == nil {
+		return nil
+	}
+	if err := r.Precheck(ctx); err != nil {
+		return fmt.Errorf("%w: %w", ErrPrecheckFailed, err)
+	}
+	return nil
 }
 
 // NewRunner binds the runner to a pool already connected to the target
@@ -253,6 +278,12 @@ type ApplyResult struct {
 // that pins one connection from the pool and runs each file in autocommit
 // mode. The schema_migrations row is upserted on the same connection
 // after; UPSERT semantics make a partial-failure retry idempotent.
+//
+// Serialization: every Apply on one schema takes the advisory lock
+// (hashtext('keystone.apply'), hashtext(schema)) — transaction-scoped on the
+// tx path, session-scoped (released on return) on the no-tx path — so a
+// declarative diff and a hand-written bundle can't interleave. The optional
+// precheck runs right after the lock is acquired.
 func (r *Runner) Apply(
 	ctx context.Context,
 	version, contentHash string,
@@ -272,6 +303,16 @@ func (r *Runner) Apply(
 	// Defer rollback as the safety net; the success path explicitly Commits
 	// so this rollback is a no-op there.
 	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx,
+		`SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))`,
+		advisoryLockNamespace, r.schema,
+	); err != nil {
+		return nil, fmt.Errorf("acquire schema lock: %w", err)
+	}
+	if err := r.runPrecheck(ctx); err != nil {
+		return nil, err
+	}
 
 	// Set search_path so unqualified objects in the migration land in
 	// the right schema. The pool's default search_path doesn't apply
@@ -397,6 +438,27 @@ func (r *Runner) applyNoTx(
 		return nil, fmt.Errorf("acquire conn: %w", err)
 	}
 	defer conn.Release()
+
+	// Session-level lock on the pinned conn. Unlock uses a fresh context so
+	// a cancelled ctx can't leave the lock held on a pooled connection; if
+	// the unlock itself fails, destroy the conn instead of returning it.
+	if _, err := conn.Exec(ctx,
+		`SELECT pg_advisory_lock(hashtext($1), hashtext($2))`,
+		advisoryLockNamespace, r.schema,
+	); err != nil {
+		return nil, fmt.Errorf("acquire schema lock: %w", err)
+	}
+	defer func() {
+		if _, err := conn.Exec(context.Background(),
+			`SELECT pg_advisory_unlock(hashtext($1), hashtext($2))`,
+			advisoryLockNamespace, r.schema,
+		); err != nil {
+			_ = conn.Conn().Close(context.Background())
+		}
+	}()
+	if err := r.runPrecheck(ctx); err != nil {
+		return nil, err
+	}
 
 	if _, err := conn.Exec(ctx,
 		fmt.Sprintf(`SET search_path TO %s`, pg.QuoteIdentifier(r.schema)),

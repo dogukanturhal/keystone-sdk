@@ -10,7 +10,7 @@ import (
 )
 
 // Tests for the extended index DDL parser. Each case is a real
-// pg_indexes.indexdef sample drawn from example-service's live public schema;
+// pg_indexes.indexdef sample drawn from falcon-id's live public schema;
 // these are the shapes the inspector must round-trip cleanly.
 
 func TestParseIndexDDL_SimpleColumns(t *testing.T) {

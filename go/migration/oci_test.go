@@ -52,7 +52,7 @@ func TestLayerFilename(t *testing.T) {
 func TestParseDockerConfig(t *testing.T) {
 	cfg := dockerConfig{
 		Auths: map[string]dockerAuth{
-			"ghcr.io/dogukanturhal": {
+			"registry.example.com": {
 				Username: "robot$keystone",
 				Password: "secret123",
 			},

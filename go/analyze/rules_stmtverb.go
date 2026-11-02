@@ -11,11 +11,11 @@ import (
 //
 // Many existing analyzer rules trip false positives because the regex
 // matches keywords that appear LEXICALLY inside an unrelated SQL
-// statement. Concrete cases observed in production (2026-05-12 example-service
+// statement. Concrete cases observed in production (2026-05-12 falcon-id
 // migration 234):
 //
 //   GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-//     ON TABLES TO example_service_app;
+//     ON TABLES TO falcon_id_app;
 //
 // trips:
 //   no-truncate                — regex `\bTRUNCATE\b`

@@ -261,6 +261,39 @@ func TestDiff_DropTable_Destructive(t *testing.T) {
 	}
 }
 
+func TestDiff_RetainTables_NeverDropped(t *testing.T) {
+	obs := &drift.Snapshot{
+		Schema: "crm",
+		Tables: []drift.TableShape{
+			{Name: "legacy", Kind: "BASE TABLE"},
+			{Name: "old_thing", Kind: "BASE TABLE"},
+		},
+	}
+	desired := &keystonev1alpha1.SchemaDefinitionSpec{
+		SchemaRef:        "crm",
+		AllowDestructive: true,
+		RetainTables:     []string{"legacy"},
+		Tables:           []keystonev1alpha1.DesiredTable{},
+	}
+	plan, err := Diff(obs, desired)
+	if err != nil {
+		t.Fatalf("Diff: %v", err)
+	}
+	if len(plan.Statements) != 1 || !strings.Contains(plan.Statements[0], `"old_thing"`) {
+		t.Fatalf("want only old_thing dropped, got %v", plan.Statements)
+	}
+	if len(plan.Warnings) == 0 || !strings.Contains(plan.Warnings[0], "legacy") {
+		t.Errorf("want retain warning for legacy, got %v", plan.Warnings)
+	}
+	// Retained alone: nothing destructive, so allowDestructive=false is fine.
+	desired.AllowDestructive = false
+	obs.Tables = obs.Tables[:1]
+	plan, err = Diff(obs, desired)
+	if err != nil || len(plan.Statements) != 0 {
+		t.Fatalf("retained table must not plan or refuse: plan=%v err=%v", plan.Statements, err)
+	}
+}
+
 // --- Phase 9.2 new tests ---
 
 func TestDiff_TopoSort_FKDependencyOrder(t *testing.T) {
@@ -996,7 +1029,7 @@ func TestDiff_Trigger(t *testing.T) {
 	}
 }
 
-// TestDiff_ColumnType_ArrayResolved guards against the example-service-control-public
+// TestDiff_ColumnType_ArrayResolved guards against the falcon-id-control-public
 // 70+ false-positive type-drift warnings observed 2026-05-06: the inspector
 // emits DataType="ARRAY" with UDTName="_text" for a `text[]` column, the SD
 // declares Type="text[]", and the unguarded comparison fired a warning on
@@ -1131,7 +1164,7 @@ func TestDiff_ColumnType_RealDriftStillWarns(t *testing.T) {
 }
 
 // TestDiff_View_EmptyQuerySkipped guards against the "syntax error at
-// or near `;`" failure observed 2026-05-06 on example-service-public-desired
+// or near `;`" failure observed 2026-05-06 on falcon-id-public-desired
 // — a view with empty Query rendered as `CREATE OR REPLACE VIEW "x" AS ;`
 // which halted the per-statement runner at the first row. The differ
 // must skip emit AND surface a warning, never emit invalid SQL.

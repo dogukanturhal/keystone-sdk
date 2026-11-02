@@ -7,7 +7,7 @@
 // Inspect → Lint → Diff loop against a throwaway Postgres spun
 // up via testcontainers. Run with:
 //
-//	GOWORK=off go test -count=1 -tags integration ./pkg/sdk/keystone/
+//	GOWORK=off go test -count=1 -tags integration ./keystone/
 
 package keystone
 

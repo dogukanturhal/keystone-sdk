@@ -47,7 +47,7 @@ func (a *NoUpdateWithoutWhere) Check(_ context.Context, m *Migration) ([]Finding
 			// statement. The greedy `\bUPDATE\s+[^;]*;` regex otherwise
 			// captures the suffix of any statement that mentions UPDATE,
 			// most notably `GRANT … UPDATE … TO role;` — verified live
-			// 2026-05-12 on example-service migration 234.
+			// 2026-05-12 on falcon-id migration 234.
 			if !stmtVerbIs(f.Body, loc[0], "UPDATE") {
 				continue
 			}

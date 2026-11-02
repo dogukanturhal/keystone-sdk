@@ -30,7 +30,7 @@ import (
 // the caller having to remember them.
 type EnrollSchemaOpts struct {
 	// Namespace the CRs are created in. Typically a per-product
-	// namespace (e.g. `example-service`); the caller's ServiceAccount must
+	// namespace (e.g. `falcon-id`); the caller's ServiceAccount must
 	// have RBAC for LogicalDatabase + DatabaseSchema in this namespace.
 	Namespace string
 
@@ -52,7 +52,7 @@ type EnrollSchemaOpts struct {
 	TenantID string
 
 	// Scope is the product scope label
-	// (keystone.hexxlock.io/scope) — e.g. "billing", "crm".
+	// (keystone.hexxlock.io/scope) — e.g. "falcon-id", "examplesuite".
 	// Required; SchemaPolicies typically gate by this label.
 	Scope string
 

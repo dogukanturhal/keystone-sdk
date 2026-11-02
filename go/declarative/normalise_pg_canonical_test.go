@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package declarative
 
 import "testing"
 
-// Both bugs were discovered live on 2026-05-19 with example-service and
+// Both bugs were discovered live on 2026-05-19 with falcon-id and
 // integration-hub-cfg SchemaDefinitions silently looping forever on
 // bundle re-emission. The tests below pin the equivalence so a future
 // regression in either canonicaliser produces a build break instead
@@ -125,7 +127,7 @@ func TestStripVarcharTextCastEquality(t *testing.T) {
 }
 
 func TestNormaliseDDL_PartialIndexVarcharEquality(t *testing.T) {
-	// End-to-end: this is the loop that bit example-service-public-desired
+	// End-to-end: this is the loop that bit falcon-id-public-desired
 	// (idx_iam_users_pending_deletion). Both forms must converge.
 	rendered := `CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_iam_users_pending_deletion" ON "public"."iam_users" USING btree ("deletion_grace_period_ends_at") WHERE (activation_status = 'pending_deletion'::character varying)`
 	observed := `CREATE INDEX idx_iam_users_pending_deletion ON public.iam_users USING btree (deletion_grace_period_ends_at) WHERE ((activation_status)::text = ('pending_deletion'::character varying)::text)`
