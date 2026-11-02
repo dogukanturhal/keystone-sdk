@@ -1,13 +1,71 @@
 # keystone-sdk
 
+**Apply, lint, inspect and diff PostgreSQL migrations from Go, Rust or .NET, with the same behaviour as the Keystone operator.**
+
 [![CI](https://github.com/dogukanturhal/keystone-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/dogukanturhal/keystone-sdk/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/dogukanturhal/keystone-sdk/go.svg)](https://pkg.go.dev/github.com/dogukanturhal/keystone-sdk/go)
-[![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20AGPL--3.0-blue.svg)](#license)
+[![License: Apache-2.0 + AGPL-3.0](https://img.shields.io/badge/license-Apache--2.0%20%2B%20AGPL--3.0-blue.svg)](#license)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/dogukanturhal/keystone-sdk/badge)](https://scorecard.dev/viewer/?uri=github.com/dogukanturhal/keystone-sdk)
 
-Go, Rust and .NET libraries that apply versioned SQL migrations to PostgreSQL
-the same way the [Keystone](https://github.com/dogukanturhal/keystone)
-operator does, without running the operator.
+**Status:** pre-1.0, not independently audited. Only the Go module is tagged (`go/v0.5.0`); the Rust crates and .NET packages are not published, so use a git dependency or build from source.
+
+**Licence:** Apache-2.0 for `rust/`, `dotnet/` and part of `go/` (`keystone`, `sqlquote`, `authoring`, `schemaspec`, `schemasource`, `orm/gorm`, `cmd/keystone-gorm`). AGPL-3.0-or-later for the Go packages `migration`, `analyze`, `declarative` and `drift`. The Go `keystone` client imports the AGPL packages. Details under [License](#license).
+
+[Quickstart](#quickstart-go-about-5-minutes) · [Docs](#what-is-usable-today) · [Architecture](#architecture) · [Security](#security) · [Contributing](#contributing)
+
+These are the libraries behind the [Keystone operator](https://github.com/dogukanturhal/keystone) (CRD group `keystone.hexxlock.io`): they apply versioned SQL migrations the same way the operator does, without running it. Questions: open an [issue](https://github.com/dogukanturhal/keystone-sdk/issues).
+
+## Apply, in each language
+
+Go:
+
+```go
+res, err := ks.Apply(ctx, pool, ks.ApplyOptions{
+	Schema:  "public",
+	Version: "v1",
+	Files: []ks.SQLFile{{
+		Name: "001_init.up.sql",
+		Body: "CREATE TABLE IF NOT EXISTS items (id bigserial PRIMARY KEY, name text NOT NULL);",
+	}},
+})
+```
+
+Rust:
+
+```rust
+use keystone_sdk::{apply, ApplyOptions, SqlFile};
+
+let res = apply(&mut client, ApplyOptions {
+    schema: "public".into(),
+    version: "v1".into(),
+    files: vec![SqlFile {
+        name: "001_init.up.sql".into(),
+        body: "CREATE TABLE IF NOT EXISTS items (id bigserial PRIMARY KEY, name text NOT NULL);".into(),
+    }],
+    tracking_table: None,
+    owner_role: None,
+}).await?;
+```
+
+.NET:
+
+```csharp
+var result = await Keystone.ApplyAsync(dataSource, new ApplyOptions
+{
+    Schema = "public",
+    Version = "v1",
+    Files = new[]
+    {
+        new SqlFile
+        {
+            Name = "001_init.up.sql",
+            Body = "CREATE TABLE IF NOT EXISTS items (id bigserial PRIMARY KEY, name text NOT NULL);",
+        },
+    },
+});
+```
+
+`client` is a `tokio_postgres::Client`, `dataSource` an `NpgsqlDataSource`, `pool` a `pgxpool.Pool`. Re-applying the same version and content is a no-op; the same version with different SQL is refused.
 
 ## Who it is for
 
@@ -19,20 +77,17 @@ instead.
 
 ## What is usable today
 
-Nothing here is published to a package registry except possibly a Go module
-tag. Read this table before you add a dependency.
+Only the Go module is tagged. Read this table before you add a dependency.
 
 | SDK | Path | What it does | How to use it today |
 |---|---|---|---|
-| Go | [`go/`](./go) | `Apply`, `Lint`, `Inspect`, `Diff`, `Enroll` client plus the runner, analyzer, differ and drift inspector packages; a GORM schema provider. | The module is `github.com/dogukanturhal/keystone-sdk/go`. Tag `go/v0.4.0` exists on GitHub, so `go get github.com/dogukanturhal/keystone-sdk/go@v0.4.0` works; later changes on `main` are not tagged yet. pkg.go.dev may not have rendered it. |
-| Rust | [`rust/`](./rust) | `keystone-sdk` crate (apply, inspect, lint, diff, authoring, schema sources) and a `keystonectl` CLI crate. | **Not on crates.io.** Build from source (`cargo build` in `rust/`) or depend on this repository by git URL. |
-| .NET | [`dotnet/`](./dotnet) | `HexxLock.Keystone.Sdk` (Apply, Inspect), an EF Core schema provider and the `keystone-ef` dotnet tool. | **Not on NuGet.** An earlier version went to an internal package registry that is not reachable from outside. Build from source (`dotnet build`) and reference the project or a locally packed `.nupkg`. |
+| Go | [`go/`](./go) | `Apply`, `Lint`, `Inspect`, `Diff`, `Enroll` client plus the runner, analyzer, differ and drift inspector packages; a GORM schema provider. | The module is `github.com/dogukanturhal/keystone-sdk/go`. Tags `go/v0.4.0` and `go/v0.5.0` exist, so `go get github.com/dogukanturhal/keystone-sdk/go@v0.5.0` works. pkg.go.dev may not have rendered it yet. |
+| Rust | [`rust/`](./rust) | `keystone-sdk` crate (apply, inspect, lint, diff, authoring, schema sources) and a `keystonectl` CLI crate. | **Not published to crates.io.** Use a git dependency on this repository, or build from source (`cargo build` in `rust/`). |
+| .NET | [`dotnet/`](./dotnet) | `HexxLock.Keystone.Sdk` (Apply, Inspect), an EF Core schema provider and the `keystone-ef` dotnet tool. | **Not published to NuGet.** Build from source (`dotnet build`) and reference the project or a locally packed `.nupkg`. The package id `HexxLock.Keystone.Sdk` is provisional and will probably change. |
 
-Plan, in order: tag the current Go state and confirm it resolves through the
-module proxy; publish the Rust crates to crates.io; publish the .NET packages
-to NuGet.org under a package id that is not tied to a company name (the
-current `HexxLock.Keystone.Sdk` id will probably change, so treat it as
-unstable). No dates.
+Plan, in order: confirm the Go tags resolve through the module proxy;
+publish the Rust crates to crates.io; publish the .NET packages to NuGet.org
+under a package id that is not tied to a company name. No dates.
 
 The Go SDK was originally part of the operator repository; its move into
 this repository is complete and recorded in [MIGRATION.md](MIGRATION.md).
@@ -80,7 +135,7 @@ You need Go and a PostgreSQL you can write to. A throwaway container is fine:
 ```sh
 docker run -d --name ks-pg -e POSTGRES_PASSWORD=pw -p 5432:5432 postgres:17
 mkdir demo && cd demo && go mod init demo
-go get github.com/dogukanturhal/keystone-sdk/go@v0.4.0
+go get github.com/dogukanturhal/keystone-sdk/go@v0.5.0
 ```
 
 `main.go`:
@@ -128,7 +183,7 @@ go mod tidy && go run .
 Run it twice: the second run is a no-op. Change the SQL without changing
 `Version` and it is refused. The exact option and result fields are in
 [go/keystone/README.md](go/keystone/README.md); this example follows it but
-has not been compiled against `v0.4.0`, so check the README if the build
+has not been compiled against `v0.5.0`, so check the README if the build
 complains. Rust and .NET quickstarts are in
 [rust/keystone-sdk/README.md](rust/keystone-sdk/README.md) and
 [dotnet/README.md](dotnet/README.md).
@@ -175,7 +230,8 @@ Testcontainers and need Docker.
 
 ## Status and limitations
 
-Pre-1.0 and not yet published (see the table above). APIs can change between
+Pre-1.0 and not independently audited. Only the Go module is tagged; Rust and
+.NET are not published (see the table above). APIs can change between
 minor versions, whatever the Go `go/keystone` README says about stability.
 The Go integration tests and the .NET Testcontainers suites need PostgreSQL
 or Docker. The Go `keystone` client has a mixed licence (below), which rules
@@ -201,7 +257,10 @@ The Go `go/README.md` has the details.
 
 ## Security
 
-Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+Report vulnerabilities privately through GitHub private vulnerability
+reporting: <https://github.com/dogukanturhal/keystone-sdk/security/advisories/new>.
+If you cannot use GitHub, email dogukanturhal@hexxlock.com. See
+[SECURITY.md](SECURITY.md).
 
 ## Contributing
 
