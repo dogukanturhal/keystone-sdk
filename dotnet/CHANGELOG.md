@@ -10,7 +10,7 @@
   structural snapshot (tables, columns, indexes, constraints) from
   `information_schema` + `pg_catalog`.
 - Wire-compatible with the Go SDK at
-  `github.com/dogukanturhal/keystone/pkg/sdk/keystone` — same
+  `github.com/dogukanturhal/keystone-sdk/go/keystone` — same
   tracking-table DDL, same SHA-256 algorithm over
   `(name‖0x00‖body‖0x00)`, same `CONCURRENTLY` detection regex, same
   UPSERT semantics on the tracking row.

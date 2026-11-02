@@ -1,15 +1,15 @@
 # Keystone SDK
 
-Apache-2.0-licensed Go library exposing Keystone's core
+Go library (this package is Apache-2.0; see ../README.md for the licence boundary) exposing Keystone's core
 schema-management primitives — analyzer pack, SQL runner,
 structural inspector, and declarative differ — for use outside a
 Kubernetes cluster.
 
-This is the legitimate integration point for proprietary Go code.
-The operator itself (`services/keystone/{cmd,internal,api}`) is
+It imports AGPL-3.0-or-later packages of this module, which matters for consumers: see ../README.md.
+The operator itself (github.com/dogukanturhal/keystone) is
 AGPL-3.0-or-later; this package is Apache-2.0 per
-ADR 0001 in the keystone repository. See the
-`LICENSE-Apache-SDK` file at the repository root for the full text.
+[ADR 0001](https://github.com/dogukanturhal/keystone/blob/main/docs/adrs/0001-agplv3-license.md). See the
+`LICENSE` file at the repository root for the full text.
 
 ## When to use the SDK
 
@@ -35,7 +35,7 @@ import (
     "testing"
 
     "github.com/jackc/pgx/v5/pgxpool"
-    ks "github.com/dogukanturhal/keystone/pkg/sdk/keystone"
+    ks "github.com/dogukanturhal/keystone-sdk/go/keystone"
 )
 
 func TestMyMigrations(t *testing.T) {
@@ -120,12 +120,12 @@ Unit + integration tests live alongside the SDK:
 
 ```
 # Unit (fast)
-GOWORK=off go test ./pkg/sdk/keystone/
+GOWORK=off go test ./keystone/
 
 # Integration (requires Docker; spins up a real Postgres via testcontainers)
-GOWORK=off go test -tags=integration ./pkg/sdk/keystone/
+GOWORK=off go test -tags=integration ./keystone/
 ```
 
 ## License
 
-Apache-2.0. See `../../LICENSE-Apache-SDK`.
+Apache-2.0. See `../../LICENSE`.

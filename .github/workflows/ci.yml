@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
 name: CI
 
 on:
@@ -16,54 +15,129 @@ concurrency:
 
 jobs:
   go:
-    name: Go SDK
+    name: Go (vet, race tests)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: go
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go/go.mod
+          check-latest: true
           cache-dependency-path: go/go.sum
+
       - run: go build ./...
       - run: go vet ./...
-      # Integration tests spin up PostgreSQL via testcontainers and need a
-      # Docker daemon; -short keeps this job to the unit set.
-      - run: go test ./... -count=1 -short
+      - run: go test -race -count=1 ./...
+
+  go-integration:
+    name: Go (integration, PostgreSQL)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: keystone_sdk
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U keystone_sdk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KEYSTONE_TEST_DSN: postgres://keystone_sdk:test@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go/go.mod
+          check-latest: true
+          cache-dependency-path: go/go.sum
+
+      - run: go test -tags integration -count=1 -p 1 -timeout 15m ./...
+
+  go-lint:
+    name: Go (golangci-lint, govulncheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go/go.mod
+          check-latest: true
+          cache-dependency-path: go/go.sum
+
+      # No repo config yet, so this runs golangci-lint's defaults. Advisory
+      # until the first clean run; drop continue-on-error then.
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        continue-on-error: true
+        with:
+          version: v2.15.0
+          working-directory: go
+
+      - name: govulncheck
+        working-directory: go
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   rust:
-    name: Rust SDK
+    name: Rust (fmt, clippy, test)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: rust
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test --all
+
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo test --workspace
 
   dotnet:
-    name: .NET SDK
+    name: .NET (build, test)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: dotnet
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: |
             8.0.x
             10.0.x
-      - run: dotnet restore
-      - run: dotnet build --no-restore --configuration Release
-      - run: dotnet test --no-build --configuration Release
+
+      - run: dotnet restore HexxLock.Keystone.Sdk.slnx
+      - run: dotnet build HexxLock.Keystone.Sdk.slnx --no-restore --configuration Release
+
+      # Hosted runners have Docker, so the Testcontainers suites run too.
+      - run: dotnet test HexxLock.Keystone.Sdk.slnx --no-build --configuration Release

@@ -392,7 +392,7 @@ func TestFromSnapshot_SelectorMode(t *testing.T) {
 		}},
 	}
 	selector := map[string]string{
-		"keystone.hexxlock.io/scope": "example-service",
+		"keystone.hexxlock.io/scope": "falcon-id",
 		"keystone.hexxlock.io/tier":  "tenant",
 	}
 	spec := FromSnapshot(snap, Options{SelectorLabels: selector})
@@ -402,7 +402,7 @@ func TestFromSnapshot_SelectorMode(t *testing.T) {
 	if spec.SchemaSelector == nil {
 		t.Fatal("SchemaSelector should be non-nil in selector mode")
 	}
-	if spec.SchemaSelector.MatchLabels["keystone.hexxlock.io/scope"] != "example-service" {
+	if spec.SchemaSelector.MatchLabels["keystone.hexxlock.io/scope"] != "falcon-id" {
 		t.Errorf("missing or wrong scope label: %v", spec.SchemaSelector.MatchLabels)
 	}
 }

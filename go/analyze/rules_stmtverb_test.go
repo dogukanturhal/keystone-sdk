@@ -44,12 +44,12 @@ ALTER TABLE t ADD COLUMN c int;`
 }
 
 // TestStatementVerb_GrantWithKeywordPrivileges is the regression test
-// for the 2026-05-12 example-service migration 234 false-positive. The
+// for the 2026-05-12 falcon-id migration 234 false-positive. The
 // statement-verb of "TRUNCATE" inside `GRANT … TRUNCATE …` must be
 // "GRANT", not "TRUNCATE".
 func TestStatementVerb_GrantWithKeywordPrivileges(t *testing.T) {
 	body := `GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-  ON TABLES TO example_service_app;`
+  ON TABLES TO falcon_id_app;`
 
 	for _, kw := range []string{"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"} {
 		idx := strings.Index(body, kw)
@@ -120,13 +120,13 @@ SELECT count(*) FROM users;`
 // -- Regression tests for the affected rules ----------------------------
 
 // TestNoTruncate_NoFalsePositiveOnGrant asserts the no-truncate rule
-// does NOT fire on the live example-service migration 234 pattern.
+// does NOT fire on the live falcon-id migration 234 pattern.
 func TestNoTruncate_NoFalsePositiveOnGrant(t *testing.T) {
 	m := &Migration{Files: []FileBody{{
-		Name: "234_grant_keystone_admin_default_privileges_to_example_service_app.up.sql",
+		Name: "234_grant_keystone_admin_default_privileges_to_falcon_id_app.up.sql",
 		Body: `ALTER DEFAULT PRIVILEGES FOR ROLE keystone_admin IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-  ON TABLES TO example_service_app;`,
+  ON TABLES TO falcon_id_app;`,
 	}}}
 	rule := &NoTruncate{}
 	out, err := rule.Check(context.Background(), m)
@@ -162,9 +162,9 @@ func TestNoTruncate_FiresOnRealTruncate(t *testing.T) {
 // regression test for the UPDATE-as-privilege false positive.
 func TestNoUpdateWithoutWhere_NoFalsePositiveOnGrant(t *testing.T) {
 	m := &Migration{Files: []FileBody{{
-		Name: "234_grant_keystone_admin_default_privileges_to_example_service_app.up.sql",
+		Name: "234_grant_keystone_admin_default_privileges_to_falcon_id_app.up.sql",
 		Body: `GRANT SELECT, INSERT, UPDATE, DELETE
-  ON TABLE iam_oauth_logout_outbox TO example_service_app;`,
+  ON TABLE iam_oauth_logout_outbox TO falcon_id_app;`,
 	}}}
 	rule := &NoUpdateWithoutWhere{}
 	out, err := rule.Check(context.Background(), m)

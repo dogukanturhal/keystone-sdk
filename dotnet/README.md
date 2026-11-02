@@ -6,14 +6,14 @@ migrations against PostgreSQL with content-hash anti-replay,
 fallback.
 
 Wire-compatible with the Go SDK at
-[`pkg/sdk/keystone`](../../pkg/sdk/keystone) and the Keystone operator —
+[`go/keystone`](../go/keystone) and the Keystone operator —
 either implementation can apply a bundle the other has already recorded.
 The per-version content hash is the shared anti-replay token.
 
 The operator itself (`internal/`, `cmd/manager/`, CRDs) is
 AGPL-3.0-or-later; this package is Apache-2.0 per
-ADR 0001 in the keystone repository. See
-[`LICENSE-Apache-SDK`](../../LICENSE-Apache-SDK) at the repository root.
+[ADR 0001](https://github.com/dogukanturhal/keystone/blob/main/docs/adrs/0001-agplv3-license.md). See
+[`LICENSE`](../LICENSE) at the repository root.
 
 ## When to use the SDK
 
@@ -129,4 +129,4 @@ unchanged. Single dependency: `Npgsql` (9.x).
 
 ## License
 
-Apache-2.0 — see [`LICENSE-Apache-SDK`](../../LICENSE-Apache-SDK).
+Apache-2.0 — see [`LICENSE`](../LICENSE).

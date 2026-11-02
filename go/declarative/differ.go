@@ -32,6 +32,7 @@ package declarative
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -193,6 +194,11 @@ func Diff(observed *drift.Snapshot, desired *keystonev1alpha1.SchemaDefinitionSp
 	// Tables in observed but not desired → DROP TABLE (reverse dependency order).
 	for _, o := range sortedObservedNames(obsTables) {
 		if _, ok := desTables[o]; ok {
+			continue
+		}
+		if slices.Contains(desired.RetainTables, o) {
+			plan.Warnings = append(plan.Warnings,
+				fmt.Sprintf("table %q is not in spec.tables but is listed in spec.retainTables; not dropping", o))
 			continue
 		}
 		plan.emitDestructive(
@@ -500,14 +506,14 @@ func diffViews(plan *Plan, schema string, observed *drift.Snapshot, desired *key
 		// Empty-query guard: a view with no SELECT body would render as
 		// `CREATE OR REPLACE VIEW "x" AS ;` which PG rejects with
 		// `syntax error at or near ";"`. Phase F's curate.py stripped
-		// these from authored SDs;
+		// these from authored SDs (internal notes);
 		// keystonectl's --strip-dangling-refs absorbed the rule (Phase G,
-		// a later phase). But neither pass
+		// internal notes). But neither pass
 		// catches a hand-authored SD that landed an empty query AFTER
 		// inspection, AND the differ should fail closed regardless of
 		// whether the curation step ran. Skip-with-warning instead of
 		// emitting invalid SQL — observed 2026-05-06 on a
-		// example-service-public-desired bundle that halted apply at index 1
+		// falcon-id-public-desired bundle that halted apply at index 1
 		// because of 6 such empty-view rows.
 		if strings.TrimSpace(v.Query) == "" {
 			plan.Warnings = append(plan.Warnings, fmt.Sprintf(
@@ -1023,7 +1029,7 @@ func diffTableObjects(
 		//
 		// Therefore: only ERROR out if the target is neither in
 		// observed NOR in plan.Statements (i.e. neither live nor
-		// being created). For the example-service-tenant case where
+		// being created). For the falcon-id-tenant case where
 		// `iam_licenses` FK target had been removed from the
 		// SchemaDefinition's tables list but the FK declaration
 		// still pointed at it, this catches the orphan FK and
@@ -1097,7 +1103,7 @@ func diffTableObjects(
 			// IF EXISTS — must not fail on second-apply when the FK
 			// has already been dropped. This eliminates the bulk of
 			// the 7× "constraint X for relation Y" failures observed
-			// live on example-service-{public,control} 2026-05-18.
+			// live on falcon-id-{public,control} 2026-05-18.
 			fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT IF EXISTS %s",
 				qualified, pg.QuoteIdentifier(name)),
 			"", // original FK definition not easily reconstructed
@@ -1345,7 +1351,7 @@ func topoSortTables(tables []keystonev1alpha1.DesiredTable) (result []string, ha
 // Both statements are idempotent in PostgreSQL, so this used to emit them
 // for every RLS table unconditionally. That is correct but not honest: a
 // schema already in its desired state produced two statements per RLS
-// table — 172 for downstream-service — and a plan that is never empty is a plan
+// table — 172 for downstream — and a plan that is never empty is a plan
 // nobody reads closely. Now that the observed snapshot carries the FORCE
 // bit, both can be compared, and an unchanged schema plans to nothing.
 //
@@ -1420,6 +1426,10 @@ func diffMaterializedViews(plan *Plan, schema string, observed *drift.Snapshot, 
 	for _, mv := range observed.MaterializedViews {
 		obsMVs[mv.Name] = mv.Definition
 	}
+	obsIdx := make(map[string]drift.ObjectDDL, len(observed.Indexes))
+	for _, ix := range observed.Indexes {
+		obsIdx[ix.Table+"\x00"+ix.Name] = ix
+	}
 
 	for _, mv := range desired.MaterializedViews {
 		qualified := fmt.Sprintf("%s.%s",
@@ -1450,17 +1460,22 @@ func diffMaterializedViews(plan *Plan, schema string, observed *drift.Snapshot, 
 			)
 		}
 
-		// Indexes on the materialized view — diffMatViewIndexes path
-		// would need its own observed-vs-desired compare; out of scope
-		// here. For now, keep emitting (these CREATE INDEX CONCURRENTLY
-		// IF NOT EXISTS are idempotent so they don't break anything;
-		// they just show as drift).
+		// Indexes on the materialized view. pg_indexes (the inspector's
+		// index source) already lists matview indexes, keyed by the
+		// matview name in Table; compare them like table indexes.
+		// Missing -> create; differing -> drop + recreate (destructive,
+		// gated by AllowDestructive as for tables).
 		for _, idx := range mv.Indexes {
-			plan.emit(
-				renderCreateIndexConcurrently(schema, mv.Name, idx),
-				fmt.Sprintf("DROP INDEX CONCURRENTLY IF EXISTS %s.%s",
-					pg.QuoteIdentifier(schema), pg.QuoteIdentifier(idx.Name)),
-			)
+			oIdx, found := obsIdx[mv.Name+"\x00"+idx.Name]
+			drop := fmt.Sprintf("DROP INDEX CONCURRENTLY IF EXISTS %s.%s",
+				pg.QuoteIdentifier(schema), pg.QuoteIdentifier(idx.Name))
+			if found {
+				if indexDDLMatch(oIdx.Definition, renderCreateIndex(schema, mv.Name, idx)) {
+					continue
+				}
+				plan.emitDestructive(drop, "")
+			}
+			plan.emit(renderCreateIndexConcurrently(schema, mv.Name, idx), drop)
 		}
 	}
 }
@@ -1483,7 +1498,7 @@ func diffTriggers(plan *Plan, schema string, observed *drift.Snapshot, desired *
 	// apply with SQLSTATE 42883 "function X does not exist" if a
 	// trigger references a function that neither live nor diff
 	// will produce. Without this guard, 8× failures observed live
-	// on example-service-{public,control} 2026-05-18 on triggers
+	// on falcon-id-{public,control} 2026-05-18 on triggers
 	// referencing `public.log_changes()` — the function had been
 	// dropped by an earlier (manual?) cleanup but the trigger
 	// definitions remained in observed; SchemaDefinition.spec
@@ -1505,7 +1520,7 @@ func diffTriggers(plan *Plan, schema string, observed *drift.Snapshot, desired *
 		// Skip emit when an equivalent trigger already exists. The
 		// previous unconditional DROP+CREATE generated thousands of
 		// no-op operations on every reconcile against a steady-state
-		// schema — burning example-pg's pendingOperations counter
+		// schema — burning falcon-id-pg's pendingOperations counter
 		// even though nothing was actually drifting.
 		if obs, ok := obsTriggers[tr.Table+"\x00"+tr.Name]; ok && triggerMatches(obs, tr) {
 			continue
@@ -2081,7 +2096,7 @@ func indexDDLMatch(observed, rendered string) bool {
 // always quotes via pg.QuoteIdentifier).
 //
 // Without this normalisation, identical indexes look diff'd to the
-// SchemaDefinitionReconciler — observed in example-service 2026-05-03:
+// SchemaDefinitionReconciler — observed in falcon-id 2026-05-03:
 // 1015 declared indexes ALL flagged as drift (CREATE+DROP) because
 // the comparison saw `"idx_arc_status"` (rendered, quoted) vs
 // `idx_arc_status` (observed, unquoted). Both refer to the same
@@ -2124,6 +2139,10 @@ func normaliseDDL(s string) string {
 	// compare equal. Runs after normaliseArrayCasts has stripped the
 	// `(array[...])::t[]` cast wrapper down to a bare `array[...]`.
 	s = normaliseInAnyArray(s)
+	// Mirror image of the above: `x NOT IN (a, b)` is rewritten by PG
+	// to `x <> ALL (ARRAY[a, b])` at parse time. Same collapse, same
+	// ordering rationale.
+	s = normaliseNotInAllArray(s)
 	s = stripVarcharTextCastEquality(s)
 	s = normaliseWhereClauseCanonical(s)
 	return s
@@ -2150,7 +2169,64 @@ func normaliseDDL(s string) string {
 // inside `items` (`'pending'::character varying`) are stripped by the
 // literal-cast pass in normaliseWhereClauseCanonical.
 func normaliseInAnyArray(s string) string {
-	const marker = "= any "
+	return rewriteMembershipArray(s, "= any ", "in (")
+}
+
+// normaliseNotInAllArray rewrites PG's canonical negated-membership
+// form
+//
+//	<lhs> <> all (array[items])
+//
+// to the authored form `<lhs> not in (items)`. PG rewrites every
+// `NOT IN (constant-list)` predicate to `<> ALL (ARRAY[...])` at
+// parse time — the mirror image of the `IN` → `= ANY` rewrite that
+// normaliseInAnyArray collapses above — so a partial-index WHERE
+// clause authored as `status NOT IN ('a','b')` is stored and read
+// back via pg_get_indexdef as
+// `((status)::text <> ALL ((ARRAY['a'::character varying,
+// 'b'::character varying])::text[]))`.
+//
+// Without this pass the two forms never compare equal: the differ
+// plans a DROP INDEX + CREATE INDEX pair every reconcile, DROP INDEX
+// is classified destructive, the destructive gate refuses it, and NO
+// MigrationBundle is emitted at all for that schema — freezing every
+// other pending change behind it (observed on payment-gateway's
+// status partial index, 2026-09-21).
+//
+// Runs in the same pipeline position as normaliseInAnyArray: after
+// normaliseArrayCasts has already reduced the outer-cast array form
+// `(ARRAY[...])::text[]` to the per-element form
+// `ARRAY[(x)::text, ...]` that pg_get_indexdef renders, so by the
+// time this pass sees the string the `<> all (` is immediately
+// followed by `array[`.
+//
+// Remaining per-literal casts inside `items` (e.g.
+// `('completed'::character varying)::text`) are stripped by the
+// paren- and literal-cast passes in normaliseWhereClauseCanonical
+// that run afterward — same as the IN/ANY case.
+//
+// Direction chosen: canonicalise the PG-rendered ANY/ALL-array form
+// DOWN to the authored IN/NOT IN form (not the reverse), to stay
+// consistent with normaliseInAnyArray's existing precedent — both
+// inputs (desired DDL and observed indexdef) flow through the same
+// normaliseDDL pipeline, so either direction converges, but keeping
+// one direction avoids maintaining two mirrored rewrite targets.
+func normaliseNotInAllArray(s string) string {
+	return rewriteMembershipArray(s, "<> all ", "not in (")
+}
+
+// rewriteMembershipArray finds occurrences of `marker` (e.g. "= any "
+// or "<> all ") followed by an optionally-paren-wrapped `array[...]`
+// literal and rewrites them to `resultPrefix` + the array's
+// comma-separated items + ")" (e.g. "in (a, b)" / "not in (a, b)").
+// Element order is preserved verbatim — an IN-list is semantically
+// order-insensitive, but pg_get_indexdef preserves authored order and
+// sorting would make genuinely different predicates compare equal.
+//
+// Quoted string-literal regions are preserved verbatim throughout, so
+// a literal containing `::`, a comma, or a paren never confuses the
+// scanner.
+func rewriteMembershipArray(s, marker, resultPrefix string) string {
 	var b strings.Builder
 	b.Grow(len(s))
 	i := 0
@@ -2191,7 +2267,7 @@ func normaliseInAnyArray(s string) string {
 					}
 					if ok {
 						items := s[bracketOpen+1 : bracketClose]
-						b.WriteString("in (")
+						b.WriteString(resultPrefix)
 						b.WriteString(items)
 						b.WriteString(")")
 						i = after
@@ -2493,7 +2569,7 @@ func stripInnerParens(s string) string {
 // cast-distributed form, looping forever.
 //
 // Verified live 2026-05-19 on
-// `idx_iam_users_pending_deletion` (example-service-public-desired):
+// `idx_iam_users_pending_deletion` (falcon-id-public-desired):
 //
 //	YAML where:  (activation_status = 'pending_deletion'::character varying)
 //	pg_get_indexdef:
@@ -2692,7 +2768,7 @@ func defaultsEqual(desired, observed string) bool {
 // `public.` schema prefix from function-call references in column
 // defaults AND strips PG's `::<type>` cast suffixes from literal
 // expressions. We strip ONLY `public.` because it's the cluster's
-// default search_path prefix (set in example-pg and example-app-pg
+// default search_path prefix (set in falcon-id-pg and example-app-pg
 // init). Other schemas (e.g. `keystone.`) genuinely need to remain
 // qualified — PG stores them so. If a different default-search-path
 // schema appears later, extend the prefix list.
@@ -2908,7 +2984,7 @@ func isASCIILetter(b byte) bool {
 // in per-element form, and the next reconcile re-emits the same
 // pair — a silent loop that drives runaway MigrationBundle
 // re-emission and AuditEntry growth (observed 2026-05-06 against
-// idx_iam_login_risk_events_high_risk on example_realm_platform,
+// idx_iam_login_risk_events_high_risk on hexxlock_realm_platform,
 // blowing keystone-operator into OOM-loop and pushing etcd into
 // EtcdTooManyRequestsAlarm via 230 MB single-batch ranges).
 //

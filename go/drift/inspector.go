@@ -392,7 +392,7 @@ func (i *Inspector) Inspect(ctx context.Context, schema string) (*Snapshot, erro
 	//
 	//  2. Robustness. information_schema.views.view_definition is NULL
 	//     when the caller lacks USAGE on the view's schema or EXECUTE on
-	//     a function it references (Example Service's keystone_admin hits this
+	//     a function it references (Falcon-ID's keystone_admin hits this
 	//     on the legacy audit views). pg_get_viewdef reconstructs from
 	//     the catalog regardless of privilege on referenced objects.
 	//
@@ -920,7 +920,7 @@ func Hash(s *Snapshot) (string, error) {
 // SD-declared types. Without a shared resolver, a SD that declares
 // "text[]" reads back "ARRAY" from the inspector and fires a
 // type-drift warning on every reconcile (observed 2026-05-06: 70+
-// false-positive warnings on example-service-tenant-desired diff).
+// false-positive warnings on falcon-id-tenant-desired diff).
 // ResolveColumnTypeShape is the modifier-preserving resolver. It prefers
 // format_type output, which already carries length, precision and PostGIS
 // typmod, and falls back to the data_type/udt_name pair for snapshots taken

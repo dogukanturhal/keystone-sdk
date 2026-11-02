@@ -196,7 +196,7 @@ func (a *NoTruncate) Check(_ context.Context, m *Migration) ([]Finding, error) {
 	// Gate: only fire when the containing statement IS a TRUNCATE. The
 	// raw `\bTRUNCATE\b` match would otherwise trip on a privilege name
 	// in `GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON TABLE …`
-	// (verified live 2026-05-12 on example-service migration 234).
+	// (verified live 2026-05-12 on falcon-id migration 234).
 	var out []Finding
 	for _, f := range m.Files {
 		for _, loc := range reTruncate.FindAllStringIndex(f.Body, -1) {

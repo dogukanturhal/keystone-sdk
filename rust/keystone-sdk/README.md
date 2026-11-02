@@ -8,8 +8,8 @@ Go, .NET, and Rust SDKs interoperate on the wire.
 
 This crate ships **Apply + primitives + the drift inspector** (`inspect` +
 baselines) **+ the native lint pack** (`lint`, 53 rules) **+ the declarative
-differ** (`diff`) **+ authoring / schemaspec / schemasource**. A CLI is
-**forthcoming**.
+differ** (`diff`) **+ authoring / schemaspec / schemasource**. The CLI is
+the separate `keystonectl` crate in this workspace.
 
 ## Modules
 
